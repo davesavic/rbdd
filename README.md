@@ -98,7 +98,9 @@ Then the response should contain JSON:
 ```gherkin
 Given I set header "Authorization" to "Bearer token123"
 When I store the response property "id" as "user_id"
-When I reset all stored variables
+When I globally store the response property "access_token" as "token"
+When I reset all scoped variables
+When I reset all global variables
 ```
 
 ### Data generation

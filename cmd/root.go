@@ -18,9 +18,9 @@ var rootCmd = &cobra.Command{
 	Use:   "rbdd",
 	Short: "Test your backend api with a simple command line tool and a few cucumber tests",
 	Long:  `A simple command line tool to test your backend api using cucumber tests written in gherkin syntax. Easily generate fake data using faker and test your api with a few simple commands. Run your tests in parallel and get the results in a simple format.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) {},
+	Run: func(cmd *cobra.Command, args []string) {
+		runCmd.Run(cmd, args)
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.

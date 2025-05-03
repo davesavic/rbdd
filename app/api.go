@@ -23,34 +23,39 @@ type APITest struct {
 	headers      map[string]string
 	response     *http.Response
 	responseBody string
-	store        map[string]any
+	scopedStore  map[string]any
+	globalStore  map[string]any
 }
+
+// Global store for variables that can be accessed from other tests
+var globalStore = map[string]any{}
 
 func NewAPITest(baseURL string) *APITest {
 	return &APITest{
-		baseURL: baseURL,
-		client:  &http.Client{},
-		headers: map[string]string{"Content-Type": "application/json"},
-		store:   map[string]any{},
+		baseURL:     baseURL,
+		client:      &http.Client{},
+		headers:     map[string]string{"Content-Type": "application/json"},
+		scopedStore: map[string]any{},
+		globalStore: globalStore,
 	}
 }
 
-// Replace variables in text with stored values using ${varname} syntax
 func (a *APITest) replaceVars(text string) string {
 	r := regexp.MustCompile(`\${([^}]+)}`)
 	return r.ReplaceAllStringFunc(text, func(match string) string {
 		// Extract key name without ${ and }
 		key := match[2 : len(match)-1]
-		if val, ok := a.store[key]; ok {
+		if val, ok := a.scopedStore[key]; ok {
+			return fmt.Sprintf("%v", val)
+		}
+		if val, ok := a.globalStore[key]; ok {
 			return fmt.Sprintf("%v", val)
 		}
 		return match
 	})
 }
 
-// Generic request sender with payload templating
 func (a *APITest) sendRequest(method, endpoint, payload string) error {
-	// Replace variables in payload and endpoint
 	endpoint = a.replaceVars(endpoint)
 	payload = a.replaceVars(payload)
 
@@ -96,7 +101,6 @@ func generateFromTag(tag string) (string, error) {
 	return fmt.Sprintf("%v", result), nil
 }
 
-// Generate fake data from pattern and store variables
 func (a *APITest) generateFakeData(dataSpec string) error {
 	pairs := splitByCommaOutsideBrackets(dataSpec)
 
@@ -109,19 +113,18 @@ func (a *APITest) generateFakeData(dataSpec string) error {
 		varName := strings.TrimSpace(parts[0])
 		pattern := strings.TrimSpace(parts[1])
 
-		// Generate fake data
 		value, err := generateFromTag(pattern)
 		if err != nil {
 			return fmt.Errorf("error generating fake data for %s: %w", varName, err)
 		}
 
-		a.store[varName] = value
+		a.scopedStore[varName] = value
+		a.globalStore[varName] = value
 	}
 
 	return nil
 }
 
-// Helper function to split string by commas, but respect content inside brackets
 func splitByCommaOutsideBrackets(s string) []string {
 	var result []string
 	var current strings.Builder
@@ -150,7 +153,6 @@ func splitByCommaOutsideBrackets(s string) []string {
 	return result
 }
 
-// Helper to check if map contains all keys/values from subset
 func containsSubset(data, subset map[string]any) error {
 	for k, expectedVal := range subset {
 		actualVal, exists := data[k]
@@ -168,7 +170,6 @@ func containsSubset(data, subset map[string]any) error {
 			}
 		}
 
-		// Direct comparison for everything else
 		if !reflect.DeepEqual(actualVal, expectedVal) {
 			return fmt.Errorf("value mismatch for key %q: expected %v but got %v",
 				k, expectedVal, actualVal)
@@ -177,37 +178,29 @@ func containsSubset(data, subset map[string]any) error {
 	return nil
 }
 
-// Execute a command and wait for completion
 func (a *APITest) iExecuteCommand(command string) error {
 	return a.iExecuteCommandInDirectory(command, "")
 }
 
-// Execute a command in a specific directory
 func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
-	// Replace variables in command
 	command = a.replaceVars(command)
 	dir = a.replaceVars(dir)
 
-	// Split the command into parts
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
 		return fmt.Errorf("empty command")
 	}
 
-	// Create command
 	cmd := exec.Command(parts[0], parts[1:]...)
 
-	// Set working directory if specified
 	if dir != "" {
 		cmd.Dir = dir
 	}
 
-	// Capture output
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 
-	// Execute command and wait for completion
 	err := cmd.Run()
 	if err != nil {
 		return fmt.Errorf("command failed: %v\nStdout: %s\nStderr: %s",
@@ -217,17 +210,13 @@ func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
 	return nil
 }
 
-// Add a command with timeout
 func (a *APITest) iExecuteCommandWithTimeout(command string, timeoutSec int) error {
-	// Create a channel for command completion
 	done := make(chan error)
 
-	// Run command in goroutine
 	go func() {
 		done <- a.iExecuteCommand(command)
 	}()
 
-	// Wait for command completion or timeout
 	select {
 	case err := <-done:
 		return err
@@ -259,20 +248,17 @@ func (a *APITest) theResponsePropertyShouldBe(property, expectedValue string) er
 		return fmt.Errorf("property %s not found in response", property)
 	}
 
-	// Handle different data types
 	switch {
 	case expected == "true" || expected == "false":
 		if value.Bool() != (expected == "true") {
 			return fmt.Errorf("expected %s to be %s but got %v", property, expected, value.Bool())
 		}
 	case strings.HasPrefix(expected, "\"") && strings.HasSuffix(expected, "\""):
-		// Handle explicit string values with quotes
 		expString := expected[1 : len(expected)-1]
 		if value.String() != expString {
 			return fmt.Errorf("expected %s to be %s but got %s", property, expString, value.String())
 		}
 	default:
-		// Try numeric comparison first
 		if expNum, err := strconv.ParseFloat(expected, 64); err == nil {
 			if value.Float() != expNum {
 				return fmt.Errorf("expected %s to be %f but got %f", property, expNum, value.Float())
@@ -291,18 +277,39 @@ func (a *APITest) iStoreTheResponsePropertyAs(property, variable string) error {
 		return fmt.Errorf("property %s not found in response", property)
 	}
 
-	// Store based on JSON type
 	switch value.Type {
 	case gjson.String:
-		a.store[variable] = value.String()
+		a.scopedStore[variable] = value.String()
 	case gjson.Number:
-		a.store[variable] = value.Float()
+		a.scopedStore[variable] = value.Float()
 	case gjson.True, gjson.False:
-		a.store[variable] = value.Bool()
+		a.scopedStore[variable] = value.Bool()
 	case gjson.JSON:
-		a.store[variable] = value.Raw
+		a.scopedStore[variable] = value.Raw
 	default:
-		a.store[variable] = value.Raw
+		a.scopedStore[variable] = value.Raw
+	}
+
+	return nil
+}
+
+func (a *APITest) iGloballyStoreResponsePropertyAs(property, variable string) error {
+	value := gjson.Get(a.responseBody, property)
+	if !value.Exists() {
+		return fmt.Errorf("property %s not found in response", property)
+	}
+
+	switch value.Type {
+	case gjson.String:
+		a.globalStore[variable] = value.String()
+	case gjson.Number:
+		a.globalStore[variable] = value.Float()
+	case gjson.True, gjson.False:
+		a.globalStore[variable] = value.Bool()
+	case gjson.JSON:
+		a.globalStore[variable] = value.Raw
+	default:
+		a.globalStore[variable] = value.Raw
 	}
 
 	return nil
@@ -313,8 +320,13 @@ func (a *APITest) iSetHeaderTo(header, value string) error {
 	return nil
 }
 
-func (a *APITest) iResetAllStoredVariables() error {
-	a.store = map[string]any{}
+func (a *APITest) iResetAllScopeVariables() error {
+	a.scopedStore = map[string]any{}
+	return nil
+}
+
+func (a *APITest) iResetAllGlobalVariables() error {
+	a.globalStore = map[string]any{}
 	return nil
 }
 
@@ -326,17 +338,13 @@ func (a *APITest) theResponsePropertyShouldNotBeEmpty(property string) error {
 	return nil
 }
 
-// Check if entire response body matches expected JSON
 func (a *APITest) theResponseShouldMatchJSON(expected string) error {
-	// First apply variable substitution
 	templated := a.replaceVars(expected)
 
-	// Parse both JSON objects
 	var expectedObj any
 	var actualObj any
 
 	if err := json.Unmarshal([]byte(templated), &expectedObj); err != nil {
-		// Try to make it a valid JSON by treating the entire string as a JSON template
 		validJSON, jsonErr := a.makeValidJSON(expected)
 		if jsonErr != nil {
 			return fmt.Errorf("invalid expected JSON: %w", err)
@@ -358,16 +366,13 @@ func (a *APITest) theResponseShouldMatchJSON(expected string) error {
 	return nil
 }
 
-// Check if response contains all fields in expected JSON (partial match)
 func (a *APITest) theResponseShouldContainJSON(expected string) error {
-	// First apply variable substitution
 	templated := a.replaceVars(expected)
 
 	var expectedMap map[string]any
 	var actualMap map[string]any
 
 	if err := json.Unmarshal([]byte(templated), &expectedMap); err != nil {
-		// Try to make it a valid JSON
 		validJSON, jsonErr := a.makeValidJSON(expected)
 		if jsonErr != nil {
 			return fmt.Errorf("invalid expected JSON: %w", err)
@@ -388,12 +393,9 @@ func (a *APITest) theResponseShouldContainJSON(expected string) error {
 	return nil
 }
 
-// Helper function to create valid JSON by properly handling variable types
 func (a *APITest) makeValidJSON(template string) (string, error) {
-	// Parse the template as a raw JSON object to find variable placeholders
 	var jsonObj map[string]any
 
-	// First escape all variables in the template to process them later
 	placeholderMap := make(map[string]string)
 	uniqueMarker := "_PLACEHOLDER_"
 	counter := 0
@@ -407,22 +409,21 @@ func (a *APITest) makeValidJSON(template string) (string, error) {
 		return fmt.Sprintf("\"%s\"", placeholder)
 	})
 
-	// Parse the template with placeholders
 	if err := json.Unmarshal([]byte(tempJSON), &jsonObj); err != nil {
 		return "", fmt.Errorf("malformed JSON template: %w", err)
 	}
 
-	// Replace placeholders with actual values with proper typing
 	var replaceInValue func(any) any
 	replaceInValue = func(val any) any {
 		switch v := val.(type) {
 		case string:
 			for placeholder, varName := range placeholderMap {
 				if strings.Contains(v, placeholder) {
-					// It's a placeholder, replace with actual value
-					if storeVal, ok := a.store[varName]; ok {
-						// Return the actual value with its proper type
+					if storeVal, ok := a.scopedStore[varName]; ok {
 						return storeVal
+					}
+					if globalVal, ok := a.globalStore[varName]; ok {
+						return globalVal
 					}
 				}
 			}
@@ -444,10 +445,8 @@ func (a *APITest) makeValidJSON(template string) (string, error) {
 		}
 	}
 
-	// Apply deep replacement
 	processedObj := replaceInValue(jsonObj)
 
-	// Convert back to JSON string
 	result, err := json.Marshal(processedObj)
 	if err != nil {
 		return "", fmt.Errorf("failed to create valid JSON: %w", err)

@@ -61,8 +61,11 @@ var syntaxCmd = &cobra.Command{
 		fmt.Println("🔄 State Management Steps")
 		fmt.Println("-----------------------")
 		fmt.Println("  Given/When I store the response property \"data.id\" as \"user_id\"")
+		fmt.Println("  Given/When I globally store the response property \"data.access_token\" as \"access_token\"")
 		fmt.Println("  Given/When I set header \"Authorization\" to \"Bearer ${token}\"")
-		fmt.Println("  Given/When I reset all stored variables")
+		fmt.Println("  Given/When I reset all scoped variables")
+		fmt.Println("  Given/When I reset all global variables")
+		fmt.Println("    # Global variables are available across all scenarios")
 		fmt.Println("")
 
 		// Data Generation Steps

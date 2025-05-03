@@ -22,8 +22,10 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 
 	// State management steps
 	ctx.Step(`^I store the response property "([^"]*)" as "([^"]*)"$`, api.iStoreTheResponsePropertyAs)
+	ctx.Step(`^I globally store the response property "([^"]*)" as "([^"]*)"$`, api.iGloballyStoreResponsePropertyAs)
 	ctx.Step(`^I set header "([^"]*)" to "([^"]*)"$`, api.iSetHeaderTo)
-	ctx.Step(`^I reset all stored variables$`, api.iResetAllStoredVariables)
+	ctx.Step(`^I reset all scoped variables$`, api.iResetAllScopeVariables)
+	ctx.Step(`^I reset all global variables$`, api.iResetAllGlobalVariables)
 
 	// Data generation steps
 	ctx.Step(`^I generate fake data: "([^"]*)"$`, api.generateFakeData)
