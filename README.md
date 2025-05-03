@@ -5,10 +5,10 @@ A lightweight CLI tool for testing RESTful APIs using behavior-driven developmen
 ## Installation
 ```bash
 go install github.com/davesavic/rbdd@latest
-
-# or
-Download the latest release from the [releases page](https://github.com/davesavic/rbdd/releases)
 ```
+or you can use the precompiled binaries for your platform.
+
+Download the latest release from the [releases page](https://github.com/davesavic/rbdd/releases)
 
 ## Quick start
 1. Create a feature file with Gherkin syntax. For example, `features/users.feature`:
