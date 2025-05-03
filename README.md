@@ -14,7 +14,7 @@ go install github.com/davesavic/rbdd@latest
 Feature: User API
 
   Scenario: Create a new user
-    Given I generate fake data: "email=email, name=name"
+    Given I generate fake data: "email={email}, name={firstname} {lastname}"
     When I send a "POST" request to "/api/users" with payload:
       """
       {
