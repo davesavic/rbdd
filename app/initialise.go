@@ -29,10 +29,12 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I reset variables "([^"]*)"$`, api.iResetVariables)
 
 	// Data generation steps
-	ctx.Step(`^I generate fake data: "([^"]*)"$`, api.generateFakeData)
+	ctx.Step(`^I generate fake data: "([^"]*)"$`, api.iGenerateFakeData)
 
 	// Command execution steps
 	ctx.Step(`^I execute command "([^"]*)"$`, api.iExecuteCommand)
 	ctx.Step(`^I execute command "([^"]*)" in directory "([^"]*)"$`, api.iExecuteCommandInDirectory)
 	ctx.Step(`^I execute command "([^"]*)" with timeout (\d+)$`, api.iExecuteCommandWithTimeout)
+	ctx.Step(`^the command output should match "([^"]*)"$`, api.theCommandOutputShouldMatch)
+	ctx.Step(`^the command output should contain "([^"]*)"$`, api.theCommandOutputShouldContain)
 }
