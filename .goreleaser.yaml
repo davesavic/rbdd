@@ -25,11 +25,6 @@ builds:
     ldflags:
       - -s -w
       - -X github.com/davesavic/rbdd/cmd.Version={{ .Tag }}
-      - -X github.com/davesavic/rbdd/cmd.Commit={{ .Commit }}
-      - -X github.com/davesavic/rbdd/cmd.Os={{ .Os }}
-      - -X github.com/davesavic/rbdd/cmd.Arch={{ .Arch }}
-      - -X github.com/davesavic/rbdd/cmd.Date={{ .Date }}
-      - -X github.com/davesavic/rbdd/cmd.BuiltBy=goreleaser
 
 archives:
   - formats: [tar.gz]

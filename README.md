@@ -52,6 +52,7 @@ Available Commands:
   help        Help about any command
   run         Run the cucumber tests
   syntax      Show the gherkin syntax available
+  version     Show the version of rbdd
 
 Flags:
       --config string   config file (default is $HOME/.rbdd.env)

@@ -17,10 +17,6 @@ var versionCmd = &cobra.Command{
 	Long:  `Display the version of the application, including the build date and commit hash.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Printf("%s version %s\n", rootCmd.Use, Version)
-		fmt.Printf("Commit: %s\n", Commit)
-		fmt.Printf("OS/Arch: %s/%s\n", Os, Arch)
-		fmt.Printf("Built at: %s\n", Date)
-		fmt.Printf("Built by: %s\n", BuiltBy)
 	},
 }
 
