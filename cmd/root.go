@@ -1,6 +1,7 @@
 /*
 Copyright © 2025 Dave Savic
 */
+
 package cmd
 
 import (
@@ -12,6 +13,14 @@ import (
 )
 
 var cfgFile string
+
+var (
+	// These variables are populated at build time
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+	builtBy = "unknown"
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
