@@ -29,16 +29,15 @@ func TestNewAPITest(t *testing.T) {
 		t.Errorf("Expected default Content-Type header, got %v", apiTest.headers)
 	}
 
-	if apiTest.scopedStore == nil {
+	if apiTest.store == nil {
 		t.Error("Expected store to be initialized, got nil")
 	}
 }
 
 func TestReplaceVars(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
-	apiTest.scopedStore["name"] = "John"
-	apiTest.scopedStore["age"] = 30
-	apiTest.globalStore["globalName"] = "Global John"
+	apiTest.store["name"] = "John"
+	apiTest.store["age"] = 30
 
 	tests := []struct {
 		input    string
@@ -48,7 +47,6 @@ func TestReplaceVars(t *testing.T) {
 		{"${name} is ${age} years old", "John is 30 years old"},
 		{"No variables here", "No variables here"},
 		{"Missing ${unknown} variable", "Missing ${unknown} variable"},
-		{"Not in scoped store but in ${globalName} store", "Not in scoped store but in Global John store"},
 	}
 
 	for _, test := range tests {
@@ -72,7 +70,7 @@ func TestSendRequest(t *testing.T) {
 	defer server.Close()
 
 	apiTest := NewAPITest(server.URL)
-	apiTest.scopedStore["id"] = "123"
+	apiTest.store["id"] = "123"
 
 	err := apiTest.sendRequest("GET", "/${id}", "")
 	if err != nil {
@@ -133,11 +131,11 @@ func TestGenerateFakeData(t *testing.T) {
 		t.Fatalf("Expected no error, got %v", err)
 	}
 
-	if _, ok := apiTest.scopedStore["name"]; !ok {
+	if _, ok := apiTest.store["name"]; !ok {
 		t.Error("Expected 'name' to be stored")
 	}
 
-	if _, ok := apiTest.scopedStore["email"]; !ok {
+	if _, ok := apiTest.store["email"]; !ok {
 		t.Error("Expected 'email' to be stored")
 	}
 
@@ -150,7 +148,7 @@ func TestGenerateFakeData(t *testing.T) {
 	if err != nil {
 		t.Errorf("For invalid tag, expected no error, got %v", err)
 	}
-	if stored, ok := apiTest.scopedStore["test"]; !ok || stored != "{invalidtag}" {
+	if stored, ok := apiTest.store["test"]; !ok || stored != "{invalidtag}" {
 		t.Errorf("Expected 'test' to be stored with value '{invalidtag}', got %v", stored)
 	}
 }
@@ -263,7 +261,7 @@ func TestIExecuteCommandInDirectory(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	apiTest.scopedStore["dir"] = tempDir
+	apiTest.store["dir"] = tempDir
 	err = apiTest.iExecuteCommandInDirectory("pwd", "${dir}")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -295,7 +293,7 @@ func TestISendRequestTo(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	apiTest.scopedStore["endpoint"] = "test"
+	apiTest.store["endpoint"] = "test"
 	err = apiTest.iSendRequestTo("GET", "/${endpoint}")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -313,7 +311,7 @@ func TestISendRequestToWithPayload(t *testing.T) {
 		t.Errorf("Expected no error, got %v", err)
 	}
 
-	apiTest.scopedStore["name"] = "John"
+	apiTest.store["name"] = "John"
 	err = apiTest.iSendRequestToWithPayload("POST", "/users", `{"name": "${name}"}`)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -378,7 +376,7 @@ func TestTheResponsePropertyShouldBe(t *testing.T) {
 		t.Error("Expected error for value mismatch, got nil")
 	}
 
-	apiTest.scopedStore["expectedName"] = "John"
+	apiTest.store["expectedName"] = "John"
 	err = apiTest.theResponsePropertyShouldBe("name", "${expectedName}")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
@@ -398,24 +396,24 @@ func TestIStoreTheResponsePropertyAs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.scopedStore["userName"] != "John" {
-		t.Errorf("Expected stored value 'John', got %v", apiTest.scopedStore["userName"])
+	if apiTest.store["userName"] != "John" {
+		t.Errorf("Expected stored value 'John', got %v", apiTest.store["userName"])
 	}
 
 	err = apiTest.iStoreTheResponsePropertyAs("age", "userAge")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.scopedStore["userAge"] != float64(30) {
-		t.Errorf("Expected stored value 30, got %v", apiTest.scopedStore["userAge"])
+	if apiTest.store["userAge"] != float64(30) {
+		t.Errorf("Expected stored value 30, got %v", apiTest.store["userAge"])
 	}
 
 	err = apiTest.iStoreTheResponsePropertyAs("active", "isActive")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.scopedStore["isActive"] != true {
-		t.Errorf("Expected stored value true, got %v", apiTest.scopedStore["isActive"])
+	if apiTest.store["isActive"] != true {
+		t.Errorf("Expected stored value true, got %v", apiTest.store["isActive"])
 	}
 
 	err = apiTest.iStoreTheResponsePropertyAs("address", "userAddress")
@@ -429,47 +427,31 @@ func TestIStoreTheResponsePropertyAs(t *testing.T) {
 	}
 }
 
-func TestIGloballyStoreTheResponsePropertyAs(t *testing.T) {
+func TestIStoreAs(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
-	apiTest.responseBody = `{
-		"name": "John",
-		"age": 30,
-		"active": true,
-		"address": {"city": "Brisbane"}
-	}`
 
-	err := apiTest.iGloballyStoreResponsePropertyAs("name", "userName")
+	err := apiTest.iStoreAs("name", "John")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.globalStore["userName"] != "John" {
-		t.Errorf("Expected stored value 'John', got %v", apiTest.globalStore["userName"])
+	if apiTest.store["name"] != "John" {
+		t.Errorf("Expected stored value 'John', got %v", apiTest.store["name"])
 	}
 
-	err = apiTest.iGloballyStoreResponsePropertyAs("age", "userAge")
+	err = apiTest.iStoreAs("age", "30")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.globalStore["userAge"] != float64(30) {
-		t.Errorf("Expected stored value 30, got %v", apiTest.globalStore["userAge"])
+	if apiTest.store["age"] != float64(30) {
+		t.Errorf("Expected stored value 30, got %v", apiTest.store["age"])
 	}
 
-	err = apiTest.iGloballyStoreResponsePropertyAs("active", "isActive")
+	err = apiTest.iStoreAs("active", "true")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.globalStore["isActive"] != true {
-		t.Errorf("Expected stored value true, got %v", apiTest.globalStore["isActive"])
-	}
-
-	err = apiTest.iGloballyStoreResponsePropertyAs("address", "userAddress")
-	if err != nil {
-		t.Errorf("Expected no error, got %v", err)
-	}
-
-	err = apiTest.iGloballyStoreResponsePropertyAs("missing", "missingValue")
-	if err == nil {
-		t.Error("Expected error for missing property, got nil")
+	if apiTest.store["active"] != true {
+		t.Errorf("Expected stored value true, got %v", apiTest.store["active"])
 	}
 }
 
@@ -495,29 +477,37 @@ func TestISetHeaderTo(t *testing.T) {
 
 func TestIResetAllStoredVariables(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
-	apiTest.scopedStore["name"] = "John"
-	apiTest.scopedStore["age"] = 30
+	apiTest.store["name"] = "John"
+	apiTest.store["age"] = 30
 
-	err := apiTest.iResetAllScopeVariables()
+	err := apiTest.iResetAllVariables()
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if len(apiTest.scopedStore) != 0 {
-		t.Errorf("Expected empty store, got %v", apiTest.scopedStore)
+	if len(apiTest.store) != 0 {
+		t.Errorf("Expected empty store, got %v", apiTest.store)
 	}
 }
 
-func TestIResetAllGlobalVariables(t *testing.T) {
+func TestIResetVariables(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
-	apiTest.globalStore["name"] = "John"
-	apiTest.globalStore["age"] = 30
+	apiTest.store["name"] = "John"
+	apiTest.store["age"] = 30
 
-	err := apiTest.iResetAllGlobalVariables()
+	err := apiTest.iResetVariables("name")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if len(apiTest.globalStore) != 0 {
-		t.Errorf("Expected empty global store, got %v", apiTest.globalStore)
+	if _, ok := apiTest.store["name"]; ok {
+		t.Error("Expected 'name' to be removed from store")
+	}
+	if apiTest.store["age"] != 30 {
+		t.Errorf("Expected 'age' to remain, got %v", apiTest.store["age"])
+	}
+
+	err = apiTest.iResetVariables("missing")
+	if err != nil {
+		t.Errorf("Expected no error for missing variable, got %v", err)
 	}
 }
 
@@ -576,8 +566,8 @@ func TestTheResponseShouldMatchJSON(t *testing.T) {
 		t.Error("Expected error for non-matching JSON, got nil")
 	}
 
-	apiTest.scopedStore["expectedName"] = "John"
-	apiTest.scopedStore["expectedAge"] = 30
+	apiTest.store["expectedName"] = "John"
+	apiTest.store["expectedAge"] = 30
 	err = apiTest.theResponseShouldMatchJSON(`{
 		"name": "${expectedName}",
 		"age": ${expectedAge},
@@ -624,7 +614,7 @@ func TestTheResponseShouldContainJSON(t *testing.T) {
 		t.Error("Expected error for non-matching subset, got nil")
 	}
 
-	apiTest.scopedStore["expectedName"] = "John"
+	apiTest.store["expectedName"] = "John"
 	err = apiTest.theResponseShouldContainJSON(`{
 		"name": "${expectedName}"
 	}`)
@@ -640,9 +630,9 @@ func TestTheResponseShouldContainJSON(t *testing.T) {
 
 func TestMakeValidJSON(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
-	apiTest.scopedStore["name"] = "John"
-	apiTest.scopedStore["age"] = 30
-	apiTest.scopedStore["active"] = true
+	apiTest.store["name"] = "John"
+	apiTest.store["age"] = 30
+	apiTest.store["active"] = true
 
 	template := `{"name": "${name}"}`
 	jsonString := apiTest.replaceVars(template)

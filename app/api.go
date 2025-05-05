@@ -23,8 +23,7 @@ type APITest struct {
 	headers      map[string]string
 	response     *http.Response
 	responseBody string
-	scopedStore  map[string]any
-	globalStore  map[string]any
+	store        map[string]any
 }
 
 // Global store for variables that can be accessed from other tests
@@ -32,11 +31,10 @@ var globalStore = map[string]any{}
 
 func NewAPITest(baseURL string) *APITest {
 	return &APITest{
-		baseURL:     baseURL,
-		client:      &http.Client{},
-		headers:     map[string]string{"Content-Type": "application/json"},
-		scopedStore: map[string]any{},
-		globalStore: globalStore,
+		baseURL: baseURL,
+		client:  &http.Client{},
+		headers: map[string]string{"Content-Type": "application/json"},
+		store:   globalStore,
 	}
 }
 
@@ -45,10 +43,7 @@ func (a *APITest) replaceVars(text string) string {
 	return r.ReplaceAllStringFunc(text, func(match string) string {
 		// Extract key name without ${ and }
 		key := match[2 : len(match)-1]
-		if val, ok := a.scopedStore[key]; ok {
-			return fmt.Sprintf("%v", val)
-		}
-		if val, ok := a.globalStore[key]; ok {
+		if val, ok := a.store[key]; ok {
 			return fmt.Sprintf("%v", val)
 		}
 		return match
@@ -118,8 +113,7 @@ func (a *APITest) generateFakeData(dataSpec string) error {
 			return fmt.Errorf("error generating fake data for %s: %w", varName, err)
 		}
 
-		a.scopedStore[varName] = value
-		a.globalStore[varName] = value
+		a.store[varName] = value
 	}
 
 	return nil
@@ -279,39 +273,44 @@ func (a *APITest) iStoreTheResponsePropertyAs(property, variable string) error {
 
 	switch value.Type {
 	case gjson.String:
-		a.scopedStore[variable] = value.String()
+		a.store[variable] = value.String()
 	case gjson.Number:
-		a.scopedStore[variable] = value.Float()
+		a.store[variable] = value.Float()
 	case gjson.True, gjson.False:
-		a.scopedStore[variable] = value.Bool()
+		a.store[variable] = value.Bool()
 	case gjson.JSON:
-		a.scopedStore[variable] = value.Raw
+		a.store[variable] = value.Raw
 	default:
-		a.scopedStore[variable] = value.Raw
+		a.store[variable] = value.Raw
 	}
 
 	return nil
 }
 
-func (a *APITest) iGloballyStoreResponsePropertyAs(property, variable string) error {
-	value := gjson.Get(a.responseBody, property)
-	if !value.Exists() {
-		return fmt.Errorf("property %s not found in response", property)
+func (a *APITest) iStoreAs(variable, value string) error {
+	value = a.replaceVars(value)
+	if strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"") {
+		value = value[1 : len(value)-1]
 	}
-
-	switch value.Type {
-	case gjson.String:
-		a.globalStore[variable] = value.String()
-	case gjson.Number:
-		a.globalStore[variable] = value.Float()
-	case gjson.True, gjson.False:
-		a.globalStore[variable] = value.Bool()
-	case gjson.JSON:
-		a.globalStore[variable] = value.Raw
-	default:
-		a.globalStore[variable] = value.Raw
+	if strings.HasPrefix(value, "{") && strings.HasSuffix(value, "}") {
+		var jsonObj map[string]any
+		if err := json.Unmarshal([]byte(value), &jsonObj); err != nil {
+			return fmt.Errorf("invalid JSON format: %w", err)
+		}
+		a.store[variable] = jsonObj
+	} else if strings.HasPrefix(value, "[") && strings.HasSuffix(value, "]") {
+		var jsonArray []any
+		if err := json.Unmarshal([]byte(value), &jsonArray); err != nil {
+			return fmt.Errorf("invalid JSON array format: %w", err)
+		}
+		a.store[variable] = jsonArray
+	} else if num, err := strconv.ParseFloat(value, 64); err == nil {
+		a.store[variable] = num
+	} else if boolVal, err := strconv.ParseBool(value); err == nil {
+		a.store[variable] = boolVal
+	} else {
+		a.store[variable] = value
 	}
-
 	return nil
 }
 
@@ -320,13 +319,17 @@ func (a *APITest) iSetHeaderTo(header, value string) error {
 	return nil
 }
 
-func (a *APITest) iResetAllScopeVariables() error {
-	a.scopedStore = map[string]any{}
+func (a *APITest) iResetAllVariables() error {
+	a.store = map[string]any{}
 	return nil
 }
 
-func (a *APITest) iResetAllGlobalVariables() error {
-	a.globalStore = map[string]any{}
+func (a *APITest) iResetVariables(variables string) error {
+	vars := strings.SplitSeq(variables, ",")
+	for variable := range vars {
+		varName := strings.TrimSpace(variable)
+		delete(a.store, varName)
+	}
 	return nil
 }
 
@@ -419,11 +422,8 @@ func (a *APITest) makeValidJSON(template string) (string, error) {
 		case string:
 			for placeholder, varName := range placeholderMap {
 				if strings.Contains(v, placeholder) {
-					if storeVal, ok := a.scopedStore[varName]; ok {
+					if storeVal, ok := a.store[varName]; ok {
 						return storeVal
-					}
-					if globalVal, ok := a.globalStore[varName]; ok {
-						return globalVal
 					}
 				}
 			}
