@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"reflect"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -18,12 +19,13 @@ import (
 )
 
 type APITest struct {
-	baseURL      string
-	client       *http.Client
-	headers      map[string]string
-	response     *http.Response
-	responseBody string
-	store        map[string]any
+	baseURL       string
+	client        *http.Client
+	headers       map[string]string
+	response      *http.Response
+	responseBody  string
+	commandOutput string
+	store         map[string]any
 }
 
 // Global store for variables that can be accessed from other tests
@@ -180,12 +182,16 @@ func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
 	command = a.replaceVars(command)
 	dir = a.replaceVars(dir)
 
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return fmt.Errorf("empty command")
+	if strings.TrimSpace(command) == "" {
+		return fmt.Errorf("command is empty")
 	}
 
-	cmd := exec.Command(parts[0], parts[1:]...)
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", command)
+	} else {
+		cmd = exec.Command("sh", "-c", command)
+	}
 
 	if dir != "" {
 		cmd.Dir = dir
@@ -196,9 +202,10 @@ func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
 	cmd.Stderr = &stderr
 
 	err := cmd.Run()
+	a.commandOutput = strings.Trim(stdout.String(), "\n")
 	if err != nil {
 		return fmt.Errorf("command failed: %v\nStdout: %s\nStderr: %s",
-			err, stdout.String(), stderr.String())
+			err, a.commandOutput, stderr.String())
 	}
 
 	return nil
@@ -284,6 +291,14 @@ func (a *APITest) iStoreTheResponsePropertyAs(property, variable string) error {
 		a.store[variable] = value.Raw
 	}
 
+	return nil
+}
+
+func (a *APITest) iStoreTheCommandOutputAs(variable string) error {
+	if a.commandOutput == "" {
+		return fmt.Errorf("command output is empty")
+	}
+	a.store[variable] = a.commandOutput
 	return nil
 }
 

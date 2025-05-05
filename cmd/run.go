@@ -19,9 +19,8 @@ var runCmd = &cobra.Command{
 	Long:  `Run the cucumber tests using the gherkin syntax.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		directories, err := cmd.Flags().GetStringSlice("directories")
-		if err != nil {
-			fmt.Println("Error getting directories flag:", err)
-			return
+		if err != nil || len(directories) == 0 {
+			directories = []string{"features"}
 		}
 
 		suite := godog.TestSuite{

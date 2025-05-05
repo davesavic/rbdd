@@ -455,6 +455,33 @@ func TestIStoreAs(t *testing.T) {
 	}
 }
 
+func TestIStoreCommandOutputAs(t *testing.T) {
+	apiTest := NewAPITest("https://example.com")
+
+	err := apiTest.iExecuteCommand("echo 'Hello World'")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	err = apiTest.iStoreTheCommandOutputAs("output")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	if apiTest.store["output"] != "Hello World" {
+		t.Errorf("Expected stored value 'Hello World', got %v", apiTest.store["output"])
+	}
+
+	err = apiTest.iExecuteCommand("thiscommanddoesnotexist")
+	if err == nil {
+		t.Error("Expected error for invalid command, got nil")
+	}
+	err = apiTest.iStoreTheCommandOutputAs("invalid")
+	if err == nil {
+		t.Error("Expected error for invalid command output, got nil")
+	}
+}
+
 func TestISetHeaderTo(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
 

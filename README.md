@@ -100,6 +100,7 @@ Then the response should contain JSON:
 Given I set header "Authorization" to "Bearer token123"
 When I store the response property "id" as "user_id"
 When I store "John" as "name"
+When I store command output as "output"
 When I reset all variables
 When I reset variables "name, user_id"
 ```
