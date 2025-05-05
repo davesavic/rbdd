@@ -14,7 +14,7 @@ import (
 
 var (
 	cfgFile string
-	Version = "v0.2.4"
+	Version = "v0.3.0"
 )
 
 // rootCmd represents the base command when called without any subcommands
