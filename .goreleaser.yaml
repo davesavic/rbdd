@@ -22,9 +22,6 @@ builds:
       - linux
       - windows
       - darwin
-    ldflags:
-      - -s -w
-      - -X github.com/davesavic/rbdd/cmd.Version={{ .Tag }}
 
 archives:
   - formats: [tar.gz]
