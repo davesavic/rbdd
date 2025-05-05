@@ -16,10 +16,12 @@ var cfgFile string
 
 var (
 	// These variables are populated at build time
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-	builtBy = "unknown"
+	Version = "dev"
+	Commit  = "none"
+	Os      = "unknown"
+	Arch    = "unknown"
+	Date    = "unknown"
+	BuiltBy = "unknown"
 )
 
 // rootCmd represents the base command when called without any subcommands
