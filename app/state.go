@@ -46,7 +46,7 @@ func (a *APITest) iStoreTheCommandOutputAs(variable string) error {
 	return nil
 }
 
-func (a *APITest) iStoreAs(variable, value string) error {
+func (a *APITest) iStoreAs(value, variable string) error {
 	value = a.replaceVars(value)
 	if strings.HasPrefix(value, "\"") && strings.HasSuffix(value, "\"") {
 		value = value[1 : len(value)-1]

@@ -49,7 +49,7 @@ func TestIStoreTheResponsePropertyAs(t *testing.T) {
 func TestIStoreAs(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
 
-	err := apiTest.iStoreAs("name", "John")
+	err := apiTest.iStoreAs("John", "name")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -57,7 +57,7 @@ func TestIStoreAs(t *testing.T) {
 		t.Errorf("Expected stored value 'John', got %v", apiTest.store["name"])
 	}
 
-	err = apiTest.iStoreAs("age", "30")
+	err = apiTest.iStoreAs("30", "age")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -65,12 +65,20 @@ func TestIStoreAs(t *testing.T) {
 		t.Errorf("Expected stored value 30, got %v", apiTest.store["age"])
 	}
 
-	err = apiTest.iStoreAs("active", "true")
+	err = apiTest.iStoreAs("true", "active")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
 	if apiTest.store["active"] != true {
 		t.Errorf("Expected stored value true, got %v", apiTest.store["active"])
+	}
+
+	err = apiTest.iStoreAs("${age}", "otherAge")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if apiTest.store["otherAge"] != float64(30) {
+		t.Errorf("Expected stored value 30, got %v", apiTest.store["otherAge"])
 	}
 }
 
