@@ -37,4 +37,8 @@ func InitializeScenario(ctx *godog.ScenarioContext) {
 	ctx.Step(`^I execute command "([^"]*)" with timeout (\d+)$`, api.iExecuteCommandWithTimeout)
 	ctx.Step(`^the command output should match "([^"]*)"$`, api.theCommandOutputShouldMatch)
 	ctx.Step(`^the command output should contain "([^"]*)"$`, api.theCommandOutputShouldContain)
+
+	// Debugging steps
+	ctx.Step(`^I start debugging$`, api.iStartDebugging)
+	ctx.Step(`^I stop debugging$`, api.iStopDebugging)
 }

@@ -118,6 +118,15 @@ Example: Then the command output should match "Success"
 Gherkin Syntax: the command output should contain "TEXT"
 Description: This step checks if the command output contains the specified text.
 Example: Then the command output should contain "Build completed"
+
+--- Debugging ---
+Gherkin Syntax: I start debugging
+Description: This step starts the debugging mode, allowing for detailed output during test execution.
+Example: Given I start debugging
+
+Gherkin Syntax: I stop debugging
+Description: This step stops the debugging mode.
+Example: Given I stop debugging
 		`
 		cmd.Println(output)
 	},

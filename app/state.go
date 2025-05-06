@@ -12,7 +12,7 @@ import (
 func (a *APITest) iStoreTheResponsePropertyAs(property, variable string) error {
 	value := gjson.Get(a.responseBody, property)
 	if !value.Exists() {
-		return fmt.Errorf("property %s not found in response", property)
+		return fmt.Errorf("property %s not found in response %s", property, a.responseBody)
 	}
 
 	switch value.Type {
@@ -28,6 +28,10 @@ func (a *APITest) iStoreTheResponsePropertyAs(property, variable string) error {
 		a.store[variable] = value.Raw
 	}
 
+	if a.debug {
+		fmt.Printf("Stored property %s as %s: %v\n", property, variable, a.store[variable])
+	}
+
 	return nil
 }
 
@@ -36,6 +40,9 @@ func (a *APITest) iStoreTheCommandOutputAs(variable string) error {
 		return fmt.Errorf("command output is empty")
 	}
 	a.store[variable] = a.commandOutput
+	if a.debug {
+		fmt.Printf("Stored command output as %s: %s\n", variable, a.commandOutput)
+	}
 	return nil
 }
 
@@ -63,16 +70,27 @@ func (a *APITest) iStoreAs(variable, value string) error {
 	} else {
 		a.store[variable] = value
 	}
+
+	if a.debug {
+		fmt.Printf("Stored %s as %s: %v\n", value, variable, a.store[variable])
+	}
+
 	return nil
 }
 
 func (a *APITest) iSetHeaderTo(header, value string) error {
 	a.headers[header] = value
+	if a.debug {
+		fmt.Printf("Set header %s to %s\n", header, value)
+	}
 	return nil
 }
 
 func (a *APITest) iResetAllVariables() error {
 	a.store = map[string]any{}
+	if a.debug {
+		fmt.Printf("Reset all variables\n")
+	}
 	return nil
 }
 
@@ -81,6 +99,9 @@ func (a *APITest) iResetVariables(variables string) error {
 	for variable := range vars {
 		varName := strings.TrimSpace(variable)
 		delete(a.store, varName)
+	}
+	if a.debug {
+		fmt.Printf("Reset variables: %s\n", variables)
 	}
 	return nil
 }

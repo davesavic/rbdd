@@ -21,6 +21,13 @@ func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
 		return fmt.Errorf("command is empty")
 	}
 
+	if a.debug {
+		fmt.Printf("Executing command: %s\n", command)
+		if dir != "" {
+			fmt.Printf("In directory: %s\n", dir)
+		}
+	}
+
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/C", command)
@@ -41,6 +48,10 @@ func (a *APITest) iExecuteCommandInDirectory(command string, dir string) error {
 	if err != nil {
 		return fmt.Errorf("command failed: %v\nStdout: %s\nStderr: %s",
 			err, a.commandOutput, stderr.String())
+	}
+
+	if a.debug {
+		fmt.Printf("Command output: %s\n", a.commandOutput)
 	}
 
 	return nil

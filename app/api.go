@@ -19,6 +19,7 @@ type APITest struct {
 	responseBody  string
 	commandOutput string
 	store         map[string]any
+	debug         bool
 }
 
 // Global store for variables that can be accessed from other tests

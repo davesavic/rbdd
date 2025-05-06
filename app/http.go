@@ -17,6 +17,10 @@ func (a *APITest) sendRequest(method, endpoint, payload string) error {
 	endpoint = a.replaceVars(endpoint)
 	payload = a.replaceVars(payload)
 
+	if a.debug {
+		fmt.Printf("Sending %s request to %s with payload: %s", method, a.baseURL+endpoint, payload)
+	}
+
 	var req *http.Request
 	var err error
 
@@ -46,6 +50,11 @@ func (a *APITest) sendRequest(method, endpoint, payload string) error {
 	a.responseBody = string(bodyBytes)
 	a.response.Body.Close()
 
+	if a.debug {
+		fmt.Printf("Response status: %d", a.response.StatusCode)
+		fmt.Printf("Response body: %s", a.responseBody)
+	}
+
 	return nil
 }
 
@@ -62,6 +71,11 @@ func (a *APITest) theResponsePropertyShouldNotBeEmpty(property string) error {
 	if !value.Exists() || value.String() == "" {
 		return fmt.Errorf("property %s is empty or not found", property)
 	}
+
+	if a.debug {
+		fmt.Printf("Property %s is not empty: %s", property, value.String())
+	}
+
 	return nil
 }
 
@@ -81,6 +95,11 @@ func (a *APITest) theResponseShouldMatchJSON(expected string) error {
 		}
 	}
 
+	if a.debug {
+		fmt.Printf("Expected JSON: %v", expectedObj)
+		fmt.Printf("Actual JSON: %v", a.responseBody)
+	}
+
 	if err := json.Unmarshal([]byte(a.responseBody), &actualObj); err != nil {
 		return fmt.Errorf("invalid response JSON: %w", err)
 	}
@@ -88,6 +107,10 @@ func (a *APITest) theResponseShouldMatchJSON(expected string) error {
 	if !reflect.DeepEqual(expectedObj, actualObj) {
 		return fmt.Errorf("JSON mismatch\nExpected: %v\nActual: %v",
 			expectedObj, actualObj)
+	}
+
+	if a.debug {
+		fmt.Printf("JSON match successful")
 	}
 
 	return nil
@@ -109,12 +132,21 @@ func (a *APITest) theResponseShouldContainJSON(expected string) error {
 		}
 	}
 
+	if a.debug {
+		fmt.Printf("Expected JSON: %v", expectedMap)
+		fmt.Printf("Actual JSON: %v", a.responseBody)
+	}
+
 	if err := json.Unmarshal([]byte(a.responseBody), &actualMap); err != nil {
 		return fmt.Errorf("invalid response JSON: %w", err)
 	}
 
 	if err := containsSubset(actualMap, expectedMap); err != nil {
 		return fmt.Errorf("JSON subset mismatch: %w", err)
+	}
+
+	if a.debug {
+		fmt.Printf("JSON subset match successful")
 	}
 
 	return nil
@@ -124,6 +156,11 @@ func (a *APITest) theResponseStatusShouldBe(status int) error {
 	if a.response.StatusCode != status {
 		return fmt.Errorf("expected status %d but got %d with body %s", status, a.response.StatusCode, a.responseBody)
 	}
+
+	if a.debug {
+		fmt.Printf("Response status %d matches expected %d", a.response.StatusCode, status)
+	}
+
 	return nil
 }
 
@@ -132,7 +169,11 @@ func (a *APITest) theResponsePropertyShouldBe(property, expectedValue string) er
 	expected := a.replaceVars(expectedValue)
 
 	if !value.Exists() {
-		return fmt.Errorf("property %s not found in response", property)
+		return fmt.Errorf("property %s not found in response %s", property, a.responseBody)
+	}
+
+	if a.debug {
+		fmt.Printf("Property %s: expected %s, got %s", property, expected, value.String())
 	}
 
 	switch {
@@ -153,6 +194,10 @@ func (a *APITest) theResponsePropertyShouldBe(property, expectedValue string) er
 		} else if value.String() != expected {
 			return fmt.Errorf("expected %s to be %s but got %s", property, expected, value.String())
 		}
+	}
+
+	if a.debug {
+		fmt.Printf("Property %s matches expected value %s", property, expected)
 	}
 
 	return nil

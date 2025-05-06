@@ -25,5 +25,9 @@ func (a *APITest) iGenerateFakeData(dataSpec string) error {
 		a.store[varName] = value
 	}
 
+	if a.debug {
+		fmt.Printf("Generated fake data: %v", a.store)
+	}
+
 	return nil
 }
