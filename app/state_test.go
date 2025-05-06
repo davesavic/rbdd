@@ -111,12 +111,13 @@ func TestIStoreCommandOutputAs(t *testing.T) {
 
 func TestISetHeaderTo(t *testing.T) {
 	apiTest := NewAPITest("https://example.com")
+	apiTest.store["access_token"] = "blahblah"
 
-	err := apiTest.iSetHeaderTo("Authorization", "Bearer token")
+	err := apiTest.iSetHeaderTo("Authorization", "Bearer ${access_token}")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
-	if apiTest.headers["Authorization"] != "Bearer token" {
+	if apiTest.headers["Authorization"] != "Bearer blahblah" {
 		t.Errorf("Expected header value 'Bearer token', got %v", apiTest.headers["Authorization"])
 	}
 

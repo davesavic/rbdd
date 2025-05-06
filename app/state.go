@@ -79,9 +79,9 @@ func (a *APITest) iStoreAs(value, variable string) error {
 }
 
 func (a *APITest) iSetHeaderTo(header, value string) error {
-	a.headers[header] = value
+	a.headers[header] = a.replaceVars(value)
 	if a.debug {
-		fmt.Printf("Set header %s to %s\n", header, value)
+		fmt.Printf("Set header %s to %s\n", header, a.headers[header])
 	}
 	return nil
 }
