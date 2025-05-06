@@ -6,9 +6,12 @@ import (
 	"github.com/cucumber/godog"
 )
 
-func InitializeScenario(ctx *godog.ScenarioContext) {
+func InitializeTestSuite(ctx *godog.TestSuiteContext) {
 	api := NewAPITest(os.Getenv("API_BASE_URL"))
+	InitializeScenario(api, ctx.ScenarioContext())
+}
 
+func InitializeScenario(api *APITest, ctx *godog.ScenarioContext) {
 	// Request steps
 	ctx.Step(`^I send a "([^"]*)" request to "([^"]*)"$`, api.iSendRequestTo)
 	ctx.Step(`^I send a "([^"]*)" request to "([^"]*)" with payload:$`, api.iSendRequestToWithPayload)

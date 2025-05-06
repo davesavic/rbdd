@@ -24,8 +24,8 @@ var runCmd = &cobra.Command{
 		}
 
 		suite := godog.TestSuite{
-			Name:                "rbdd",
-			ScenarioInitializer: app.InitializeScenario,
+			Name:                 "rbdd",
+			TestSuiteInitializer: app.InitializeTestSuite,
 			Options: &godog.Options{
 				Format: "pretty",
 				Paths:  directories,
