@@ -94,10 +94,27 @@ func TestTheResponsePropertyShouldBe(t *testing.T) {
 		"name": "John",
 		"age": 30,
 		"active": true,
-		"address": {"city": "Brisbane"}
+		"address": {"city": "Brisbane"},
+		"empty": "",
+		"null": null
 	}`
 
-	err := apiTest.theResponsePropertyShouldBe("name", "John")
+	err := apiTest.theResponsePropertyShouldBe("not.exists", "empty")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	err = apiTest.theResponsePropertyShouldBe("empty", "")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	err = apiTest.theResponsePropertyShouldBe("null", "empty")
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+
+	err = apiTest.theResponsePropertyShouldBe("name", "John")
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

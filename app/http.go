@@ -168,6 +168,24 @@ func (a *APITest) theResponsePropertyShouldBe(property, expectedValue string) er
 	value := gjson.Get(a.responseBody, property)
 	expected := a.replaceVars(expectedValue)
 
+	if property == "empty" || property == "not.exists" {
+		fmt.Printf("Type is %s", value.Type)
+	}
+
+	if expectedValue == "empty" {
+		switch value.Type {
+		case gjson.Null:
+			return nil
+		case gjson.String:
+			if value.String() != "" {
+				return fmt.Errorf("property %s should be empty but got %s", property, value.String())
+			}
+		default:
+			return fmt.Errorf("property %s should be empty but got %s", property, value.String())
+		}
+		return nil
+	}
+
 	if !value.Exists() {
 		return fmt.Errorf("property %s not found in response %s", property, a.responseBody)
 	}
